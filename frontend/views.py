@@ -89,32 +89,82 @@ class SubCategoryViewSet(BaseReferenceViewSet):
     model_name = 'Подкатегория'
 
 
-class CashflowRecordViewSet(BaseReferenceViewSet):
+class CashflowRecordViewSet(ModelViewSet):
     queryset = CashflowRecord.objects.select_related(
         'type', 'status', 'category', 'subcategory'
     ).all()
     serializer_class = CashflowRecordSerializer
-    form_class = CashflowRecordAdminForm
+    renderer_classes = [TemplateHTMLRenderer]
     model_name = 'Запись ДДС'
     template_name = 'record_list.html'
     template_form = 'record_form.html'
     template_confirm_delete = 'record_confirm_delete.html'
+    form_class = CashflowRecordAdminForm
 
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
-        # Фильтрация через GET-параметры
+
         filters = {
             'created_at__gte': request.GET.get('date_after'),
             'created_at__lte': request.GET.get('date_before'),
-            'status__name__icontains': request.GET.get('status'),
-            'category__name__icontains': request.GET.get('category'),
-            'subcategory__name__icontains': request.GET.get('subcategory'),
+            'status_id': request.GET.get('status'),
+            'category_id': request.GET.get('category'),
+            'subcategory_id': request.GET.get('subcategory'),
         }
         filters = {k: v for k, v in filters.items() if v}
-        qs = qs.filter(**filters)
+        qs = qs.filter(**filters).order_by('-created_at')
 
         return Response({
             'records': qs,
+            'request': request,
             'model_name': self.model_name,
-            'request': request  # чтобы использовать значения фильтра в шаблоне
-        })
+            'status_list': Status.objects.all(),
+            'category_list': Category.objects.all(),
+            'subcategory_list': SubCategory.objects.all(),
+        }, template_name=self.template_name)
+
+    @action(detail=False, methods=['get', 'post'], url_path='create')
+    def create_view(self, request):
+        if request.method == 'POST':
+            form = self.form_class(request.POST)
+            if form.is_valid():
+                form.save()
+                return redirect('frontend:records-list')
+        else:
+            form = self.form_class()
+
+        return Response({
+            'form': form,
+            'model_name': self.model_name,
+            'type_categories': list(Category.objects.values('id', 'name', 'type_id')),
+            'category_subcategories': list(SubCategory.objects.values('id', 'name', 'category_id')),
+        }, template_name=self.template_form)
+
+    @action(detail=True, methods=['get', 'post'], url_path='edit')
+    def edit_view(self, request, pk=None):
+        obj = self.get_object()
+        if request.method == 'POST':
+            form = self.form_class(request.POST, instance=obj)
+            if form.is_valid():
+                form.save()
+                return redirect('frontend:records-list')
+        else:
+            form = self.form_class(instance=obj)
+
+        return Response({
+            'form': form,
+            'model_name': self.model_name,
+            'type_categories': list(Category.objects.values('id', 'name', 'type_id')),
+            'category_subcategories': list(SubCategory.objects.values('id', 'name', 'category_id')),
+        }, template_name=self.template_form)
+
+    @action(detail=True, methods=['get', 'post'], url_path='delete')
+    def delete_view(self, request, pk=None):
+        obj = self.get_object()
+        if request.method == 'POST':
+            obj.delete()
+            return redirect('frontend:records-list')
+        return Response({
+            'object': obj,
+            'model_name': self.model_name,
+        }, template_name=self.template_confirm_delete)

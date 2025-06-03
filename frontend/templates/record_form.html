@@ -38,4 +38,56 @@
   });
 })();
 </script>
+<script>
+  const typeCategories = {{ type_categories|safe }};
+  const categorySubcategories = {{ category_subcategories|safe }};
+
+  const typeSelect = document.getElementById("id_type");
+  const categorySelect = document.getElementById("id_category");
+  const subcategorySelect = document.getElementById("id_subcategory");
+
+  function populate(select, options, selectedValue = null) {
+    select.innerHTML = '<option value="">---------</option>';
+    options.forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt.id;
+      option.textContent = opt.name;
+      if (selectedValue && selectedValue == opt.id) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+  }
+
+  // Инициализировать категории и подкатегории при загрузке
+  window.addEventListener("DOMContentLoaded", () => {
+    const selectedType = typeSelect?.value;
+    const selectedCategory = categorySelect?.value;
+    const selectedSubcategory = subcategorySelect?.value;
+
+    if (selectedType) {
+      const filteredCategories = typeCategories.filter(c => c.type_id == selectedType);
+      populate(categorySelect, filteredCategories, selectedCategory);
+    }
+
+    if (selectedCategory) {
+      const filteredSubcategories = categorySubcategories.filter(sc => sc.category_id == selectedCategory);
+      populate(subcategorySelect, filteredSubcategories, selectedSubcategory);
+    }
+  });
+
+  // Динамика при выборе
+  typeSelect?.addEventListener("change", () => {
+    const typeId = typeSelect.value;
+    const filtered = typeCategories.filter(c => c.type_id == typeId);
+    populate(categorySelect, filtered);
+    populate(subcategorySelect, []);
+  });
+
+  categorySelect?.addEventListener("change", () => {
+    const catId = categorySelect.value;
+    const filtered = categorySubcategories.filter(sc => sc.category_id == catId);
+    populate(subcategorySelect, filtered);
+  });
+</script>
 {% endblock %}
