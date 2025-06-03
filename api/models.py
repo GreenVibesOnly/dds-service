@@ -45,6 +45,7 @@ class SubCategory(models.Model):
 # Запись о движении денежных средств (ДДС)
 class CashflowRecord(models.Model):
     created_at = models.DateField('Дата создания', default=date.today)
+    amount = models.DecimalField('Сумма', max_digits=10, decimal_places=2)
     status = models.ForeignKey(Status,
                                on_delete=models.SET_NULL,
                                null=True,
@@ -65,7 +66,6 @@ class CashflowRecord(models.Model):
                                     null=True,
                                     related_name='cashflowrecord',
                                     verbose_name='Подкатегория')
-    amount = models.DecimalField('Сумма', max_digits=10, decimal_places=2)
     comment = models.TextField('Комментарий', blank=True)
 
     def __str__(self):

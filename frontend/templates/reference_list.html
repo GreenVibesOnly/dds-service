@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ model_name }}{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">{{ model_name }}</h2>
+<a href="create/" class="btn btn-success mb-3">Создать {{ model_name|lower }}</a>
+
+<table class="table table-bordered table-hover bg-white">
+  <thead class="table-light">
+    <tr>
+      <th>Название</th>
+
+      {% if model_name == "Категория" %}
+        <th>Тип</th>
+      {% elif model_name == "Подкатегория" %}
+        <th>Категория</th>
+        <th>Тип</th>
+      {% endif %}
+
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obj in objects %}
+      <tr>
+        <td>{{ obj.name }}</td>
+
+        {% if model_name == "Категория" %}
+          <td>{{ obj.type.name }}</td>
+        {% elif model_name == "Подкатегория" %}
+          <td>{{ obj.category.name }}</td>
+          <td>{{ obj.category.type.name }}</td>
+        {% endif %}
+
+        <td>
+          <a href="{{ obj.id }}/edit/" class="btn btn-sm btn-outline-primary">✏️</a>
+          <a href="{{ obj.id }}/delete/" class="btn btn-sm btn-outline-danger">🗑️</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6" class="text-center">Нет записей</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

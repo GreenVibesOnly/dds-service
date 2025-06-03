@@ -1,24 +1,25 @@
 {% extends "base.html" %}
-{% block title %}ДДС — Список записей{% endblock %}
+{% block title %}Записи ДДС{% endblock %}
+
 {% block content %}
 <h1 class="mb-4">Записи ДДС</h1>
-<a href="{% url 'frontend:create' %}" class="btn btn-primary mb-3">Добавить запись</a>
+<a href="create/" class="btn btn-primary mb-3">Добавить запись</a>
 
 <form method="get" class="row g-2 mb-4">
     <div class="col-md-2">
-        <input type="date" name="date_after" class="form-control" placeholder="C даты">
+        <input type="date" name="date_after" value="{{ request.GET.date_after }}" class="form-control" placeholder="С даты">
     </div>
     <div class="col-md-2">
-        <input type="date" name="date_before" class="form-control" placeholder="До даты">
+        <input type="date" name="date_before" value="{{ request.GET.date_before }}" class="form-control" placeholder="До даты">
     </div>
     <div class="col-md-2">
-        <input type="text" name="status" class="form-control" placeholder="Статус">
+        <input type="text" name="status" value="{{ request.GET.status }}" class="form-control" placeholder="Статус">
     </div>
     <div class="col-md-2">
-        <input type="text" name="category" class="form-control" placeholder="Категория">
+        <input type="text" name="category" value="{{ request.GET.category }}" class="form-control" placeholder="Категория">
     </div>
     <div class="col-md-2">
-        <input type="text" name="subcategory" class="form-control" placeholder="Подкатегория">
+        <input type="text" name="subcategory" value="{{ request.GET.subcategory }}" class="form-control" placeholder="Подкатегория">
     </div>
     <div class="col-md-2">
         <button class="btn btn-outline-secondary w-100">Фильтровать</button>
@@ -35,6 +36,7 @@
             <th>Подкатегория</th>
             <th>Сумма</th>
             <th>Комментарий</th>
+            <th>Действия</th>
         </tr>
     </thead>
     <tbody>
@@ -47,10 +49,16 @@
             <td>{{ record.subcategory.name }}</td>
             <td>{{ record.amount }}</td>
             <td>{{ record.comment }}</td>
+            <td>
+                <a href="{{ record.id }}/edit/" class="btn btn-sm btn-outline-primary">✏️</a>
+                <a href="{{ record.id }}/delete/" class="btn btn-sm btn-outline-danger">🗑️</a>
+            </td>
         </tr>
     {% empty %}
-        <tr><td colspan="7" class="text-center">Нет записей</td></tr>
+        <tr><td colspan="8" class="text-center">Нет записей</td></tr>
     {% endfor %}
     </tbody>
 </table>
+
+<p class="text-muted">Всего записей: {{ records|length }}</p>
 {% endblock %}
