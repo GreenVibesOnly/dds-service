@@ -1,24 +1,26 @@
 from django.shortcuts import redirect
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from api.forms import (StatusForm, TypeForm, CategoryForm,
-                       SubCategoryForm, CashflowRecordAdminForm)
-from api.models import Status, Type, Category, SubCategory, CashflowRecord
-from api.serializers import (StatusSerializer, TypeSerializer,
-                             CategorySerializer, SubCategorySerializer,
-                             CashflowRecordSerializer)
+from .filters import CashflowRecordFilter
+from .forms import (StatusForm, TypeForm, CategoryForm,
+                    SubCategoryForm, CashflowRecordAdminForm)
+from .models import Status, Type, Category, SubCategory, CashflowRecord
+from .serializers import (StatusSerializer, TypeSerializer,
+                          CategorySerializer, SubCategorySerializer,
+                          CashflowRecordSerializer)
 
 
 class BaseReferenceViewSet(ModelViewSet):
     renderer_classes = [TemplateHTMLRenderer]
-    template_name = 'reference_list.html'
+    template_name = 'references/reference_list.html'
     model_name = ''
     form_class = None
-    template_form = 'reference_form.html'
-    template_confirm_delete = 'reference_confirm_delete.html'
+    template_form = 'references/reference_form.html'
+    template_confirm_delete = 'references/reference_confirm_delete.html'
 
     def list(self, request, *args, **kwargs):
         return Response({
@@ -96,10 +98,12 @@ class CashflowRecordViewSet(ModelViewSet):
     serializer_class = CashflowRecordSerializer
     renderer_classes = [TemplateHTMLRenderer]
     model_name = 'Запись ДДС'
-    template_name = 'record_list.html'
-    template_form = 'record_form.html'
-    template_confirm_delete = 'record_confirm_delete.html'
+    template_name = 'records/record_list.html'
+    template_form = 'records/record_form.html'
+    template_confirm_delete = 'records/record_confirm_delete.html'
     form_class = CashflowRecordAdminForm
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CashflowRecordFilter
 
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
@@ -108,6 +112,7 @@ class CashflowRecordViewSet(ModelViewSet):
             'created_at__gte': request.GET.get('date_after'),
             'created_at__lte': request.GET.get('date_before'),
             'status_id': request.GET.get('status'),
+            'type_id': request.GET.get('type'),
             'category_id': request.GET.get('category'),
             'subcategory_id': request.GET.get('subcategory'),
         }
@@ -119,6 +124,7 @@ class CashflowRecordViewSet(ModelViewSet):
             'request': request,
             'model_name': self.model_name,
             'status_list': Status.objects.all(),
+            'type_list': Type.objects.all(),
             'category_list': Category.objects.all(),
             'subcategory_list': SubCategory.objects.all(),
         }, template_name=self.template_name)
@@ -129,15 +135,17 @@ class CashflowRecordViewSet(ModelViewSet):
             form = self.form_class(request.POST)
             if form.is_valid():
                 form.save()
-                return redirect('frontend:records-list')
+                return redirect('core:records-list')
         else:
             form = self.form_class()
 
         return Response({
             'form': form,
             'model_name': self.model_name,
-            'type_categories': list(Category.objects.values('id', 'name', 'type_id')),
-            'category_subcategories': list(SubCategory.objects.values('id', 'name', 'category_id')),
+            'type_categories': list(Category.objects.values(
+                'id', 'name', 'type_id')),
+            'category_subcategories': list(SubCategory.objects.values(
+                'id', 'name', 'category_id')),
         }, template_name=self.template_form)
 
     @action(detail=True, methods=['get', 'post'], url_path='edit')
@@ -147,15 +155,17 @@ class CashflowRecordViewSet(ModelViewSet):
             form = self.form_class(request.POST, instance=obj)
             if form.is_valid():
                 form.save()
-                return redirect('frontend:records-list')
+                return redirect('core:records-list')
         else:
             form = self.form_class(instance=obj)
 
         return Response({
             'form': form,
             'model_name': self.model_name,
-            'type_categories': list(Category.objects.values('id', 'name', 'type_id')),
-            'category_subcategories': list(SubCategory.objects.values('id', 'name', 'category_id')),
+            'type_categories': list(Category.objects.values(
+                'id', 'name', 'type_id')),
+            'category_subcategories': list(SubCategory.objects.values(
+                'id', 'name', 'category_id')),
         }, template_name=self.template_form)
 
     @action(detail=True, methods=['get', 'post'], url_path='delete')
@@ -163,7 +173,7 @@ class CashflowRecordViewSet(ModelViewSet):
         obj = self.get_object()
         if request.method == 'POST':
             obj.delete()
-            return redirect('frontend:records-list')
+            return redirect('core:records-list')
         return Response({
             'object': obj,
             'model_name': self.model_name,
