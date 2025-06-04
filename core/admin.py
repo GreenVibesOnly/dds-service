@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .forms import CashflowRecordAdminForm
+from .forms import CashflowRecordForm
 from .models import (
     Status,
     Type,
@@ -44,7 +44,7 @@ class SubCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(CashflowRecord)
 class CashflowRecordAdmin(admin.ModelAdmin):
-    form = CashflowRecordAdminForm
+    form = CashflowRecordForm
     list_display = [
         'created_at', 'type', 'status', 'category',
         'subcategory', 'amount', 'comment'

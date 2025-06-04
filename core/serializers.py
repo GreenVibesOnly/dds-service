@@ -28,6 +28,7 @@ class SubCategorySerializer(ModelSerializer):
         fields = '__all__'
 
 
+# Сериализатор для записи ДДС с серверной валидацией
 class CashflowRecordSerializer(ModelSerializer):
     class Meta:
         model = CashflowRecord

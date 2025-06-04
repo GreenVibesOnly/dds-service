@@ -1,3 +1,13 @@
+<!-- 
+  Шаблон формы для создания и редактирования записей ДДС.
+
+  Возможности:
+  - Отображение всех полей формы в Bootstrap-сетке
+  - Подключение клиентской валидации Bootstrap (was-validated)
+  - Динамическая подгрузка категорий и подкатегорий по выбранному типу
+  - JS-инициализация значений при редактировании
+-->
+
 {% extends "base.html" %}
 {% block title %}{{ model_name }}{% endblock %}
 
@@ -24,6 +34,10 @@
 </form>
 
 <script>
+  // Клиентская валидация Bootstrap 5:
+  // Проверяет, все ли обязательные поля формы заполнены перед отправкой.
+  // Если нет — отменяет отправку и показывает подсказки.
+
 (() => {
   'use strict';
   const forms = document.querySelectorAll('.needs-validation');
@@ -39,6 +53,8 @@
 })();
 </script>
 <script>
+  // Динамическое обновление категорий и подкатегорий при выборе типа и категории.
+
   const typeCategories = {{ type_categories|safe }};
   const categorySubcategories = {{ category_subcategories|safe }};
 
@@ -59,7 +75,7 @@
     });
   }
 
-  // Инициализировать категории и подкатегории при загрузке
+  // Инициализация категории и подкатегории при загрузке
   window.addEventListener("DOMContentLoaded", () => {
     const selectedType = typeSelect?.value;
     const selectedCategory = categorySelect?.value;

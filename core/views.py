@@ -7,13 +7,14 @@ from rest_framework.viewsets import ModelViewSet
 
 from .filters import CashflowRecordFilter
 from .forms import (StatusForm, TypeForm, CategoryForm,
-                    SubCategoryForm, CashflowRecordAdminForm)
+                    SubCategoryForm, CashflowRecordForm)
 from .models import Status, Type, Category, SubCategory, CashflowRecord
 from .serializers import (StatusSerializer, TypeSerializer,
                           CategorySerializer, SubCategorySerializer,
                           CashflowRecordSerializer)
 
 
+# Базовый ViewSet для справочников с HTML и API-интерфейсом
 class BaseReferenceViewSet(ModelViewSet):
     renderer_classes = [TemplateHTMLRenderer]
     template_name = 'references/reference_list.html'
@@ -22,12 +23,14 @@ class BaseReferenceViewSet(ModelViewSet):
     template_form = 'references/reference_form.html'
     template_confirm_delete = 'references/reference_confirm_delete.html'
 
+    # Отображение списка объектов справочника
     def list(self, request, *args, **kwargs):
         return Response({
             'objects': self.get_queryset(),
             'model_name': self.model_name
         })
 
+    # Страница создания нового объекта
     @action(detail=False, methods=['get', 'post'], url_path='create')
     def create_view(self, request):
         if request.method == 'POST':
@@ -40,6 +43,7 @@ class BaseReferenceViewSet(ModelViewSet):
         return Response({'form': form, 'model_name': self.model_name},
                         template_name=self.template_form)
 
+    # Страница редактирования объекта
     @action(detail=True, methods=['get', 'post'], url_path='edit')
     def edit_view(self, request, pk=None):
         obj = self.get_object()
@@ -53,6 +57,7 @@ class BaseReferenceViewSet(ModelViewSet):
         return Response({'form': form, 'model_name': self.model_name},
                         template_name=self.template_form)
 
+    # Страница подтверждения и удаления объекта
     @action(detail=True, methods=['get', 'post'], url_path='delete')
     def delete_view(self, request, pk=None):
         obj = self.get_object()
@@ -91,7 +96,19 @@ class SubCategoryViewSet(BaseReferenceViewSet):
     model_name = 'Подкатегория'
 
 
-class CashflowRecordViewSet(ModelViewSet):
+# Mixin с данными о справочниках для записей ДДС
+class CategoryDataMixin:
+    def get_category_data(self):
+        return {
+            'type_categories': list(Category.objects.values(
+                'id', 'name', 'type_id')),
+            'category_subcategories': list(SubCategory.objects.values(
+                'id', 'name', 'category_id')),
+        }
+
+
+# ViewSet для записей ДДС с поддержкой HTML и фильтрации
+class CashflowRecordViewSet(CategoryDataMixin, ModelViewSet):
     queryset = CashflowRecord.objects.select_related(
         'type', 'status', 'category', 'subcategory'
     ).all()
@@ -101,26 +118,14 @@ class CashflowRecordViewSet(ModelViewSet):
     template_name = 'records/record_list.html'
     template_form = 'records/record_form.html'
     template_confirm_delete = 'records/record_confirm_delete.html'
-    form_class = CashflowRecordAdminForm
+    form_class = CashflowRecordForm
     filter_backends = [DjangoFilterBackend]
     filterset_class = CashflowRecordFilter
 
     def list(self, request, *args, **kwargs):
-        qs = self.get_queryset()
-
-        filters = {
-            'created_at__gte': request.GET.get('date_after'),
-            'created_at__lte': request.GET.get('date_before'),
-            'status_id': request.GET.get('status'),
-            'type_id': request.GET.get('type'),
-            'category_id': request.GET.get('category'),
-            'subcategory_id': request.GET.get('subcategory'),
-        }
-        filters = {k: v for k, v in filters.items() if v}
-        qs = qs.filter(**filters).order_by('-created_at')
-
+        qs = self.filter_queryset(self.get_queryset())
         return Response({
-            'records': qs,
+            'records': qs.order_by('-created_at'),
             'request': request,
             'model_name': self.model_name,
             'status_list': Status.objects.all(),
@@ -131,41 +136,29 @@ class CashflowRecordViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get', 'post'], url_path='create')
     def create_view(self, request):
-        if request.method == 'POST':
-            form = self.form_class(request.POST)
-            if form.is_valid():
-                form.save()
-                return redirect('core:records-list')
-        else:
-            form = self.form_class()
+        form = self.form_class(request.POST or None)
+        if request.method == 'POST' and form.is_valid():
+            form.save()
+            return redirect('core:records-list')
 
         return Response({
             'form': form,
             'model_name': self.model_name,
-            'type_categories': list(Category.objects.values(
-                'id', 'name', 'type_id')),
-            'category_subcategories': list(SubCategory.objects.values(
-                'id', 'name', 'category_id')),
+            **self.get_category_data(),
         }, template_name=self.template_form)
 
     @action(detail=True, methods=['get', 'post'], url_path='edit')
     def edit_view(self, request, pk=None):
         obj = self.get_object()
-        if request.method == 'POST':
-            form = self.form_class(request.POST, instance=obj)
-            if form.is_valid():
-                form.save()
-                return redirect('core:records-list')
-        else:
-            form = self.form_class(instance=obj)
+        form = self.form_class(request.POST or None, instance=obj)
+        if request.method == 'POST' and form.is_valid():
+            form.save()
+            return redirect('core:records-list')
 
         return Response({
             'form': form,
             'model_name': self.model_name,
-            'type_categories': list(Category.objects.values(
-                'id', 'name', 'type_id')),
-            'category_subcategories': list(SubCategory.objects.values(
-                'id', 'name', 'category_id')),
+            **self.get_category_data(),
         }, template_name=self.template_form)
 
     @action(detail=True, methods=['get', 'post'], url_path='delete')
@@ -174,6 +167,7 @@ class CashflowRecordViewSet(ModelViewSet):
         if request.method == 'POST':
             obj.delete()
             return redirect('core:records-list')
+
         return Response({
             'object': obj,
             'model_name': self.model_name,

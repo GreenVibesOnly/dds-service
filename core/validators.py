@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django import forms
 
 
+# Общая серверная валидация данных записи (форма и сериализатор)
 def validate_cashflow_data(data, context='serializer', form_instance=None):
     errors = {}
 

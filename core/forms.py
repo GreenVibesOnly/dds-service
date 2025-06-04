@@ -27,7 +27,8 @@ class SubCategoryForm(forms.ModelForm):
         fields = ['name', 'category']
 
 
-class CashflowRecordAdminForm(forms.ModelForm):
+# Форма записи с Bootstrap-стилем и валидацией
+class CashflowRecordForm(forms.ModelForm):
     class Meta:
         model = CashflowRecord
         fields = '__all__'

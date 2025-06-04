@@ -27,7 +27,7 @@ class Category(models.Model):
                              verbose_name='Тип')
 
     def __str__(self):
-        return self.name
+        return f'{self.name} ({self.type})'
 
 
 # Подкатегории, связанные с категорией
@@ -39,7 +39,7 @@ class SubCategory(models.Model):
                                  verbose_name='Категория')
 
     def __str__(self):
-        return self.name
+        return f'{self.name} ({self.category})'
 
 
 # Запись о движении денежных средств (ДДС)
